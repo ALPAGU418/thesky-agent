@@ -1,16 +1,22 @@
 {
-  "name": "thesky-agent",
+  "name": "base-x402-agent-app",
   "version": "1.0.0",
-  "description": "Base x402 AI Agent Infrastructure & Web App",
-  "main": "server.js",
+  "private": true,
   "scripts": {
-    "start": "node server.js"
+    "dev:agent": "ts-node src/agent/server.ts",
+    "dev:client": "ts-node src/client/app.ts",
+    "build": "tsc"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.0.0",
-    "ethers": "^6.7.0",
-    "express": "^4.18.2"
+    "@coinbase/coinbase-sdk": "^0.11.0",
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.11.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   }
 }
