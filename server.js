@@ -8,13 +8,14 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
-// Builder Code (App Code - 'a')
+// Senin Base Builder Code (App Code - 'a')
 const BUILDER_CODE = process.env.BUILDER_CODE || "bc_z7owye3n"; 
 const PAYMENT_RECIPIENT = process.env.PAYMENT_RECIPIENT || "0xCC09114041e7b7d389F2853375a5b2663C801898";
 
 app.post('/api/ai-agent/analyze', async (req, res) => {
     const paymentHeader = req.headers['x-402-payment'] || req.headers['authorization'];
     
+    // Ödeme yoksa x402 protokolü uyarınca 402 döner
     if (!paymentHeader) {
         return res.status(402).json({
             error: "Payment Required",
@@ -50,7 +51,7 @@ app.post('/api/ai-agent/analyze', async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Sunucu analiz hatası." });
+        res.status(500).json({ success: false, message: "Sunucu hatası." });
     }
 });
 
