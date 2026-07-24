@@ -1,22 +1,14 @@
 {
-  "name": "base-x402-agent-app",
+  "name": "thesky-agent",
   "version": "1.0.0",
-  "private": true,
+  "description": "Base aginda x402 protokollü AI Agent ve Airdrop Analiz Sistemi",
+  "main": "server.js",
   "scripts": {
-    "dev:agent": "ts-node src/agent/server.ts",
-    "dev:client": "ts-node src/client/app.ts",
-    "build": "tsc"
+    "start": "node server.js"
   },
   "dependencies": {
-    "@coinbase/coinbase-sdk": "^0.11.0",
-    "express": "^4.19.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "ethers": "^6.11.1"
-  },
-  "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.11.24",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "express": "^4.19.2"
   }
 }
