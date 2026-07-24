@@ -1,491 +1,69 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Base App & x402 Builder Code Meta Integration -->
-    <meta name="base:app_id" content="6a399054e72cf2901e817d84" />
-    <meta name="base:builder_code" content="bc_z7owye3n" />
-    
-    <title>TheSky Agent - x402 Base Wallet & Airdrop Simulator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base x402 AI Agent</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0052FF; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #ffffff; color: #000; border-radius: 16px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    h2 { margin-top: 0; color: #0052FF; }
+    textarea { width: 100%; height: 80px; border: 1px solid #ccc; border-radius: 8px; padding: 8px; box-sizing: border-box; }
+    button { width: 100%; background: #0052FF; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #003cd6; }
+    .logs { background: #f4f4f6; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; margin-top: 12px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; }
+  </style>
 </head>
-<body class="bg-[#080b11] text-slate-200 min-h-screen font-sans flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
+<body>
+  <div class="card">
+    <h2>Base x402 AI Agent</h2>
+    <p style="font-size: 14px; color: #666;">HTTP 402 Tabanlı Mikro Ödemeli Yapay Zeka Entegrasyonu</p>
+    
+    <label for="prompt">Sorgunuz:</label>
+    <textarea id="prompt" placeholder="Base ağında x402 işlemi gerçekleştir..."></textarea>
+    
+    <button onclick="sendRequest()">Sorgula (0.001 USDC)</button>
 
-    <div class="relative z-10">
-        <!-- HEADER / ÜST BAR -->
-        <header class="border-b border-slate-800/80 bg-[#0d111a]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
-            <div class="flex items-center space-x-6">
-                <div class="flex items-center space-x-2">
-                    <span class="text-2xl font-black text-white tracking-wider flex items-center gap-1.5">
-                        <span class="text-cyan-400">⚡</span> TheSky Agent
-                    </span>
-                </div>
-                <nav class="hidden md:flex items-center space-x-4 text-xs font-medium text-slate-400">
-                    <span class="text-cyan-400 font-bold border-b-2 border-cyan-400 pb-1 cursor-pointer">x402 Wallet Scanner</span>
-                    <span class="hover:text-slate-200 cursor-pointer">Airdrop Simulator</span>
-                    <span class="hover:text-slate-200 cursor-pointer">AI Swap Aggregator</span>
-                </nav>
-            </div>
-            
-            <div class="flex items-center space-x-3">
-                <button id="connectBtn" onclick="connectWallet()" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-4 py-1.5 rounded-lg transition text-xs flex items-center gap-2 shadow-lg shadow-cyan-950/40">
-                    <i class="fa-solid fa-wallet"></i> Cüzdan Bağla
-                </button>
-            </div>
-        </header>
+    <div class="logs" id="logs">Sistem hazır. İstek bekleniyor...</div>
+  </div>
 
-        <!-- MAIN CONTAINER -->
-        <main class="max-w-7xl mx-auto mt-6 px-4 space-y-6 mb-16">
+  <script>
+    function log(msg) {
+      const logsEl = document.getElementById("logs");
+      logsEl.innerText += "\n" + msg;
+      logsEl.scrollTop = logsEl.scrollHeight;
+    }
 
-            <!-- ARAMA BAR & x402 BITEN BILGI ALANI -->
-            <div class="bg-[#0f1420] border border-slate-800/80 p-5 rounded-xl space-y-4 shadow-xl">
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div class="flex items-center gap-3 w-full sm:w-2/3 bg-[#080b11] border border-slate-800 rounded-lg px-3 py-2">
-                        <i class="fa-solid fa-magnifying-glass text-slate-400 text-sm"></i>
-                        <input id="walletInput" type="text" placeholder="Base Cüzdan Adresini Girin (0x...)" class="w-full bg-transparent text-xs text-white outline-none font-mono">
-                    </div>
-                    <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-                        <span class="text-xs text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20 font-mono">
-                            Ücret: <b>0.1 USDC</b>
-                        </span>
-                        <button id="mainAnalysisBtn" onclick="requestWalletAnalysis()" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-5 py-2 rounded-lg text-xs transition shadow-lg whitespace-nowrap">
-                            Basescan Verisini Çek (0.1 USDC)
-                        </button>
-                    </div>
-                </div>
+    async function sendRequest() {
+      const prompt = document.getElementById("prompt").value;
+      if (!prompt) return alert("Lütfen bir sorgu girin.");
 
-                <!-- Olay / Uyarı Mesaj Alanı -->
-                <div id="statusBox" class="hidden text-xs font-mono p-3 rounded-lg border"></div>
-            </div>
+      log(`[Bilgi] İstek atılıyor: ${prompt}`);
+      
+      try {
+        const res = await fetch("/api/v1/agent/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
 
-            <!-- BOŞ BAŞLANGIÇ EKRANI (İLK AÇILIŞ - GÖRSELDEKİ GİBİ SIFIR VERİ) -->
-            <div id="emptyState" class="bg-[#0f1420] border border-slate-800/80 rounded-xl p-10 text-center space-y-3">
-                <div class="text-4xl text-slate-600"><i class="fa-solid fa-shield-halved"></i></div>
-                <h3 class="text-slate-300 font-bold text-sm">Aktivite Analizi & Airdrop Simülatörü Bekleniyor</h3>
-                <p class="text-slate-500 text-xs max-w-md mx-auto">
-                    Cüzdanın Base ağındaki gerçek zamanlı <b>Basescan.org</b> verilerini çekmek ve L2 (Arbitrum, Linea, Starknet, zkSync) Airdrop simülasyonunu başlatmak için yukarıya adresi girip 0.1 USDC ödemesini onaylayın.
-                </p>
-            </div>
-
-            <!-- DETAYLI DASHBOARD (Ödeme Tamamlandıktan Sonra Görünür) -->
-            <div id="dashboardContainer" class="hidden space-y-6">
-
-                <!-- 1. SIRA: SKOR VE STREAK DETAYLARI -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    
-                    <!-- SKOR ÇARKI -->
-                    <div class="bg-[#0f1420] border border-slate-800/80 p-5 rounded-xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg">
-                        <div class="w-28 h-28 rounded-full border-4 border-slate-800 border-t-cyan-400 border-r-cyan-400 flex flex-col items-center justify-center relative">
-                            <span id="displayScore" class="text-2xl font-black text-white">0</span>
-                            <span class="text-[9px] text-slate-400 font-mono">zkScore</span>
-                        </div>
-                        <span id="rankBadge" class="mt-3 bg-slate-800 text-slate-300 border border-slate-700 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                            CALCULATING
-                        </span>
-                    </div>
-
-                    <!-- STREAK & SÜRE METRİKLERİ -->
-                    <div class="md:col-span-2 bg-[#0f1420] border border-slate-800/80 p-5 rounded-xl flex flex-col justify-between shadow-lg">
-                        <div class="flex justify-between items-center mb-2">
-                            <div class="flex items-center gap-2">
-                                <span id="displayStreak" class="bg-blue-600/20 text-blue-400 font-bold px-2 py-0.5 rounded text-xs">0</span>
-                                <h3 class="text-xs font-bold text-white">Activity Streak</h3>
-                            </div>
-                            <span class="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded text-[10px] font-mono">Base Network Active</span>
-                        </div>
-
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-2 text-xs font-mono">
-                            <div class="bg-[#080b11] p-2.5 rounded-lg border border-slate-800/60">
-                                <div class="text-slate-500 text-[10px]">Son İşlem</div>
-                                <div id="displayLastTx" class="text-white font-bold text-[11px] mt-0.5">-</div>
-                            </div>
-                            <div class="bg-[#080b11] p-2.5 rounded-lg border border-slate-800/60">
-                                <div class="text-slate-500 text-[10px]">Cüzdan Yaşı</div>
-                                <div id="displayAge" class="text-white font-bold text-[11px] mt-0.5">-</div>
-                            </div>
-                            <div class="bg-[#080b11] p-2.5 rounded-lg border border-slate-800/60">
-                                <div class="text-slate-500 text-[10px]">Aktif Gün</div>
-                                <div id="displayDays" class="text-white font-bold text-[11px] mt-0.5">-</div>
-                            </div>
-                            <div class="bg-[#080b11] p-2.5 rounded-lg border border-slate-800/60">
-                                <div class="text-slate-500 text-[10px]">Aktif Hafta / Ay</div>
-                                <div id="displayWeeksMonths" class="text-white font-bold text-[11px] mt-0.5">-</div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- 2. SIRA: BASESCAN CANLI METRİKLERİ -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
-                    <div class="bg-[#0f1420] border border-slate-800/80 p-4 rounded-xl shadow-lg">
-                        <div class="text-xs text-slate-400 mb-1">Toplam İşlem (Tx)</div>
-                        <div id="displayTxTotal" class="text-xl font-bold text-white">0</div>
-                        <div class="text-[10px] text-slate-500 mt-2">Basescan API Doğrulaması</div>
-                    </div>
-
-                    <div class="bg-[#0f1420] border border-slate-800/80 p-4 rounded-xl shadow-lg">
-                        <div class="text-xs text-slate-400 mb-1">Etkileşimli Kontratlar</div>
-                        <div id="displayContracts" class="text-xl font-bold text-cyan-400">0</div>
-                        <div class="text-[10px] text-slate-500 mt-2">Benzersiz Akıllı Kontrat Sayısı</div>
-                    </div>
-
-                    <div class="bg-[#0f1420] border border-slate-800/80 p-4 rounded-xl shadow-lg">
-                        <div class="text-xs text-slate-400 mb-1">Top. Harcanan Gas (ETH)</div>
-                        <div id="displayGasEth" class="text-xl font-bold text-red-400">0.0000 ETH</div>
-                        <div class="text-[10px] text-slate-500 mt-2">Ağ Ücreti Harcaması</div>
-                    </div>
-                </div>
-
-                <!-- 3. SIRA: LAYER 2 AIRDROP SİMÜLATÖRÜ (YENİ VE ÖZEL BÖLÜM) -->
-                <div class="bg-[#0f1420] border border-slate-800/80 p-6 rounded-xl shadow-xl space-y-4">
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <h2 class="text-sm font-bold text-yellow-400 flex items-center gap-2">
-                            <i class="fa-solid fa-gift"></i> Base Network - Layer 2 Airdrop Simülatörü
-                        </h2>
-                        <span class="text-[10px] text-slate-400 font-mono">Geçmiş L2 Airdrop Kriterleri Birebir Uygulandı</span>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        
-                        <!-- Arbitrum Kriter Simülasyonu -->
-                        <div class="bg-[#080b11] border border-slate-800 p-4 rounded-xl space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-xs text-blue-400">Arbitrum Kriteri</span>
-                                <i class="fa-solid fa-layer-group text-blue-400 text-xs"></i>
-                            </div>
-                            <div class="text-[10px] text-slate-400">Tx Adedi, Kontrat Sayısı ve Cüzdan Yaşı Hesabı</div>
-                            <div class="pt-2 border-t border-slate-800/80 flex justify-between items-center">
-                                <span class="text-[11px] text-slate-500">Tahmini Hakediş:</span>
-                                <span id="arbReward" class="text-sm font-black text-white font-mono">0 BASE</span>
-                            </div>
-                        </div>
-
-                        <!-- Linea Kriter Simülasyonu -->
-                        <div class="bg-[#080b11] border border-slate-800 p-4 rounded-xl space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-xs text-emerald-400">Linea Kriteri</span>
-                                <i class="fa-solid fa-chart-simple text-emerald-400 text-xs"></i>
-                            </div>
-                            <div class="text-[10px] text-slate-400">Ödenen Toplam Gas Fee ve L2 Etkileşimi</div>
-                            <div class="pt-2 border-t border-slate-800/80 flex justify-between items-center">
-                                <span class="text-[11px] text-slate-500">Tahmini Hakediş:</span>
-                                <span id="lineaReward" class="text-sm font-black text-white font-mono">0 BASE</span>
-                            </div>
-                        </div>
-
-                        <!-- Starknet Kriter Simülasyonu -->
-                        <div class="bg-[#080b11] border border-slate-800 p-4 rounded-xl space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-xs text-purple-400">Starknet Kriteri</span>
-                                <i class="fa-solid fa-bolt text-purple-400 text-xs"></i>
-                            </div>
-                            <div class="text-[10px] text-slate-400">Farklı Ay/Hafta Tutarlılığı ve Minimum Tx</div>
-                            <div class="pt-2 border-t border-slate-800/80 flex justify-between items-center">
-                                <span class="text-[11px] text-slate-500">Tahmini Hakediş:</span>
-                                <span id="starknetReward" class="text-sm font-black text-white font-mono">0 BASE</span>
-                            </div>
-                        </div>
-
-                        <!-- zkSync Kriter Simülasyonu -->
-                        <div class="bg-[#080b11] border border-slate-800 p-4 rounded-xl space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-xs text-cyan-400">zkSync Kriteri</span>
-                                <i class="fa-solid fa-cube text-cyan-400 text-xs"></i>
-                            </div>
-                            <div class="text-[10px] text-slate-400">Aktif Gün Sayısı ve Cüzdan Sadakat Skoru</div>
-                            <div class="pt-2 border-t border-slate-800/80 flex justify-between items-center">
-                                <span class="text-[11px] text-slate-500">Tahmini Hakediş:</span>
-                                <span id="zksyncReward" class="text-sm font-black text-white font-mono">0 BASE</span>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- BÖLÜM 4: AI SWAP AGGREGATOR -->
-            <div class="bg-[#0f1420] border border-slate-800/80 p-6 rounded-xl shadow-xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                        <i class="fa-solid fa-robot"></i> Dynamic AI Swap Aggregator
-                    </h2>
-                    <span class="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Sınırsız Miktar & Yön</span>
-                </div>
-                
-                <textarea id="aiPrompt" placeholder="Örn: '10 USDC to ETH' veya '0.5 ETH usdc çevir'" class="w-full bg-[#080b11] border border-slate-800 rounded-lg p-3 text-xs text-white h-20 resize-none outline-none focus:border-emerald-500 font-mono"></textarea>
-
-                <button onclick="runMultiRouteSwap()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold p-2.5 rounded-lg text-xs transition shadow-lg">
-                    Rotaları Tara
-                </button>
-                <div id="swapResultBox" class="hidden mt-2 p-4 bg-[#080b11] border border-slate-800 rounded-lg text-xs"></div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- FOOTER -->
-    <footer class="border-t border-slate-800/80 bg-[#0d111a] w-full py-4 relative z-10">
-        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center text-[10px] text-slate-500 font-mono">
-            <div>&copy; 2026 TheSky Agent | Base Builder Code: bc_z7owye3n</div>
-            <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Basescan API + x402 Active</span>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JAVASCRIPT MOTORU -->
-    <script>
-        const COMMISSION_WALLET = "0xCC09114041e7b7d389F2853375a5b2663C801898";
-        const BASE_USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-        const BUILDER_CODE = "bc_z7owye3n";
-        const ETH_PRICE_USD = 3400;
-
-        let provider = null;
-        let signer = null;
-        let userAddress = null;
-
-        async function connectWallet() {
-            if (window.ethereum) {
-                try {
-                    provider = new ethers.BrowserProvider(window.ethereum);
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    signer = await provider.getSigner();
-                    userAddress = accounts[0];
-                    const btn = document.getElementById('connectBtn');
-                    btn.innerText = `${userAddress.substring(0,6)}...${userAddress.substring(38)}`;
-                    btn.className = "bg-emerald-500 text-black font-bold px-4 py-1.5 rounded-lg text-xs transition shadow-lg";
-                } catch (err) {
-                    alert("Cüzdan bağlantısı reddedildi.");
-                }
-            } else {
-                alert("MetaMask veya Base uyumlu cüzdan bulunamadı!");
-            }
+        if (res.status === 402) {
+          const data = await res.json();
+          log(`[x402] 402 Ödeme Gerekli! App Code: ${data.extensions?.builder_code?.a}`);
+          log(`[x402] Ödeme onaylanıyor ve işlem tamamlanıyor...`);
+          
+          // Yapay onay simülasyonu
+          setTimeout(() => {
+            log(`[Başarılı] Ödeme yerleşimi gerçekleşti! Yanıt alındı.`);
+          }, 1000);
+        } else {
+          const data = await res.json();
+          log(`[Yanıt]: ${JSON.stringify(data)}`);
         }
-
-        // ANALİZ TALEBİ VE HTTP 402 ÖDEME İSTEĞİ
-        function requestWalletAnalysis() {
-            const targetWallet = document.getElementById('walletInput').value.trim();
-            const statusBox = document.getElementById('statusBox');
-            
-            if(!targetWallet || !targetWallet.startsWith("0x") || targetWallet.length !== 42) {
-                return alert('Lütfen analiz için geçerli bir Base (0x...) cüzdan adresi girin!');
-            }
-
-            statusBox.classList.remove('hidden');
-            statusBox.className = "text-xs font-mono p-3 rounded-lg border bg-[#0d111a] border-cyan-500/40 text-cyan-400 space-y-2";
-            statusBox.innerHTML = `
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <span class="text-yellow-400 font-bold"><i class="fa-solid fa-shield-halved"></i> HTTP 402 PAYMENT REQUIRED</span>
-                    <span class="text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30">ERC-8021 Code: ${BUILDER_CODE}</span>
-                </div>
-                <p class="text-slate-300">
-                    <b>${targetWallet}</b> cüzdanının Basescan verilerini çekmek ve Airdrop Simülasyonunu çalıştırmak için <b>0.1 USDC</b> x402 mikro-ödemesi yapmalısınız.
-                </p>
-                <button onclick="executeUsdcPayment('${targetWallet}')" class="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold p-2.5 rounded-lg text-xs transition shadow-lg">
-                    0.1 USDC Öde ve Basescan Verisini Getir
-                </button>
-            `;
-        }
-
-        // 0.1 USDC ÖDEME SÜRECİ
-        async function executeUsdcPayment(targetWallet) {
-            if(!signer) await connectWallet();
-
-            const statusBox = document.getElementById('statusBox');
-
-            try {
-                const usdcAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-                const usdcContract = new ethers.Contract(BASE_USDC_ADDRESS, usdcAbi, signer);
-
-                // 0.1 USDC Transfer
-                const tx = await usdcContract.transfer(COMMISSION_WALLET, ethers.parseUnits("0.1", 6));
-                
-                statusBox.innerHTML = "<div class='text-emerald-400 animate-pulse'>⚡ 0.1 USDC Ödemesi onaylanıyor, Basescan API'den veriler çekiliyor...</div>";
-
-                await tx.wait();
-                statusBox.classList.add('hidden');
-                
-                // Ödeme Başarılı -> Dashboard'u Aç ve Basescan Verisini Çek
-                fetchBasescanData(targetWallet);
-
-            } catch (err) {
-                alert("Ödeme iptal edildi veya bakiyeniz yetersiz!");
-            }
-        }
-
-        // BASESCAN MAINNET API VERİSİ ÇEKME & L2 SİMÜLASYONU
-        async function fetchBasescanData(wallet) {
-            document.getElementById('emptyState').classList.add('hidden');
-            const dashboard = document.getElementById('dashboardContainer');
-            dashboard.classList.remove('hidden');
-
-            try {
-                // Basescan API Endpoint (Base Mainnet)
-                const apiUrl = `https://api.basescan.org/api?module=account&action=txlist&address=${wallet}&startblock=0&endblock=99999999&page=1&offset=200&sort=asc`;
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-
-                if (data.status === "1" && data.result.length > 0) {
-                    const txs = data.result;
-                    const totalTx = txs.length;
-
-                    // Kontrat Etkileşimi Sayımı ve Gas Hesabı
-                    const uniqueContracts = new Set();
-                    let totalGasEth = 0;
-
-                    txs.forEach(tx => {
-                        if (tx.to) uniqueContracts.add(tx.to.toLowerCase());
-                        const gasUsed = BigInt(tx.gasUsed || 0);
-                        const gasPrice = BigInt(tx.gasPrice || 0);
-                        totalGasEth += Number(gasUsed * gasPrice) / 1e18;
-                    });
-
-                    // Zaman Hesaplamaları
-                    const firstTxTime = parseInt(txs[0].timeStamp) * 1000;
-                    const lastTxTime = parseInt(txs[txs.length - 1].timeStamp) * 1000;
-                    
-                    const now = Date.now();
-                    const ageDays = Math.max(1, Math.floor((now - firstTxTime) / (1000 * 60 * 60 * 24)));
-                    const ageWeeks = Math.max(1, Math.floor(ageDays / 7));
-                    const ageMonths = Math.max(1, Math.floor(ageDays / 30));
-
-                    // Arayüzü Canlı Verilerle Doldurma
-                    document.getElementById('displayTxTotal').innerText = totalTx;
-                    document.getElementById('displayContracts').innerText = uniqueContracts.size;
-                    document.getElementById('displayGasEth').innerText = `${totalGasEth.toFixed(4)} ETH`;
-                    
-                    document.getElementById('displayAge').innerText = `${ageDays} Gün`;
-                    document.getElementById('displayDays').innerText = `${ageDays} Gün`;
-                    document.getElementById('displayWeeksMonths').innerText = `${ageWeeks} Hafta / ${ageMonths} Ay`;
-                    document.getElementById('displayLastTx').innerText = `${Math.floor((now - lastTxTime) / (1000 * 60 * 60))} Saat Önce`;
-
-                    // Skor Hesaplama
-                    let score = Math.min(100, (totalTx * 0.4 + uniqueContracts.size * 0.8 + ageDays * 0.2)).toFixed(1);
-                    document.getElementById('displayScore').innerText = score;
-                    document.getElementById('displayStreak').innerText = Math.floor(totalTx / 5);
-
-                    if (score > 70) document.getElementById('rankBadge').innerText = "GOLD";
-                    else if (score > 40) document.getElementById('rankBadge').innerText = "SILVER";
-                    else document.getElementById('rankBadge').innerText = "BRONZE";
-
-                    // AIRDROP SIMÜLASYON HESAPLAMALARI
-                    // 1. Arbitrum Kriteri (Tx, Kontrat, Yaş)
-                    let arbTokens = (totalTx * 12) + (uniqueContracts.size * 25) + (ageDays * 2);
-                    document.getElementById('arbReward').innerText = `${Math.floor(arbTokens)} BASE`;
-
-                    // 2. Linea Kriteri (Ödenen Gas & L2 Etkileşimi)
-                    let lineaTokens = (totalGasEth * 15000) + (uniqueContracts.size * 40);
-                    document.getElementById('lineaReward').innerText = `${Math.floor(lineaTokens)} BASE`;
-
-                    // 3. Starknet Kriteri (Aylar ve Haftalara Yayılmış Tutarlılık)
-                    let starknetTokens = (ageMonths * 150) + (ageWeeks * 30) + (totalTx * 8);
-                    document.getElementById('starknetReward').innerText = `${Math.floor(starknetTokens)} BASE`;
-
-                    // 4. zkSync Kriteri (Aktif Gün ve Sadakat)
-                    let zksyncTokens = (ageDays * 15) + (totalTx * 10) + (uniqueContracts.size * 20);
-                    document.getElementById('zksyncReward').innerText = `${Math.floor(zksyncTokens)} BASE`;
-
-                } else {
-                    alert("Bu cüzdan adresi için Basescan üzerinde henüz işlem kaydı bulunamadı.");
-                }
-
-            } catch (err) {
-                console.error(err);
-                alert("Basescan verileri çekilirken bir hata oluştu.");
-            }
-        }
-
-        // DİNAMİK AI SWAP AGGREGATOR
-        function runMultiRouteSwap() {
-            const prompt = document.getElementById('aiPrompt').value.trim();
-            const swapBox = document.getElementById('swapResultBox');
-            if(!prompt) return alert("Lütfen takas miktarını giriniz!");
-
-            swapBox.classList.remove('hidden');
-            swapBox.className = "mt-2 p-3 bg-[#080b11] border border-emerald-500/40 rounded-xl text-xs text-emerald-400 font-mono animate-pulse";
-            swapBox.innerText = "🤖 Rotalar taranıyor...";
-
-            const amountMatch = prompt.match(/[0-9]+[.,]?[0-9]*/);
-            let parsedAmount = amountMatch ? parseFloat(amountMatch[0].replace(',', '.')) : 10;
-
-            const isUsdcToEth = prompt.toLowerCase().includes("usdc") && (prompt.toLowerCase().includes("eth") || prompt.toLowerCase().includes("ethereum")) && prompt.toLowerCase().indexOf("usdc") < prompt.toLowerCase().search(/eth|ethereum/);
-
-            let inputSymbol, outputSymbol, aeroReturn, uniReturn;
-
-            if (isUsdcToEth) {
-                inputSymbol = "USDC";
-                outputSymbol = "ETH";
-                let baseEth = parsedAmount / ETH_PRICE_USD;
-                aeroReturn = (baseEth * 0.998).toFixed(6);
-                uniReturn = (baseEth * 0.991).toFixed(6);
-            } else {
-                inputSymbol = "ETH";
-                outputSymbol = "USDC";
-                let baseUsdc = parsedAmount * ETH_PRICE_USD;
-                aeroReturn = (baseUsdc * 0.998).toFixed(2);
-                uniReturn = (baseUsdc * 0.991).toFixed(2);
-            }
-
-            setTimeout(() => {
-                swapBox.className = "mt-2 p-4 bg-[#0f1420] border border-slate-800 rounded-xl text-xs text-slate-200 animate-none space-y-2 font-mono";
-                swapBox.innerHTML = `
-                    <div class="text-emerald-400 font-bold flex justify-between items-center mb-1">
-                        <span>🎯 En İyi Rotasyon Rotaları</span>
-                        <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-300">Miktar: ${parsedAmount} ${inputSymbol}</span>
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <div class="bg-[#080b11] border border-emerald-500/40 p-2.5 rounded-lg flex justify-between items-center">
-                            <div>
-                                <div class="text-xs font-bold text-white">Aerodrome Rota</div>
-                                <div class="text-[10px] text-slate-400">Tahmini: <b class="text-emerald-400">${aeroReturn} ${outputSymbol}</b></div>
-                            </div>
-                            <button onclick="executeAggregatorSwap('${parsedAmount}', '${inputSymbol}', 'Aerodrome')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[11px] px-3 py-1 rounded transition">Onayla</button>
-                        </div>
-
-                        <div class="bg-[#080b11] border border-slate-800 p-2.5 rounded-lg flex justify-between items-center">
-                            <div>
-                                <div class="text-xs font-bold text-slate-300">Uniswap V3 Rota</div>
-                                <div class="text-[10px] text-slate-500">Tahmini: ${uniReturn} ${outputSymbol}</div>
-                            </div>
-                            <button onclick="executeAggregatorSwap('${parsedAmount}', '${inputSymbol}', 'Uniswap V3')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] px-3 py-1 rounded transition">Onayla</button>
-                        </div>
-                    </div>
-                `;
-            }, 500);
-        }
-
-        async function executeAggregatorSwap(amount, token, protocol) {
-            if(!signer) await connectWallet();
-
-            try {
-                if(token === "USDC") {
-                    const usdcAbi = ["function transfer(address to, uint256 value) returns (bool)"];
-                    const usdcContract = new ethers.Contract(BASE_USDC_ADDRESS, usdcAbi, signer);
-                    const tx = await usdcContract.transfer(COMMISSION_WALLET, ethers.parseUnits((amount * 0.01).toString(), 6));
-                    alert(`${protocol} rotası başlatıldı...`);
-                    await tx.wait();
-                } else {
-                    const tx = await signer.sendTransaction({
-                        to: COMMISSION_WALLET,
-                        value: ethers.parseEther((amount * 0.01).toFixed(5))
-                    });
-                    alert(`${protocol} rotası başlatıldı...`);
-                    await tx.wait();
-                }
-
-                alert(`🎉 ${protocol} havuzundaki takas tamamlandı!`);
-            } catch (err) {
-                alert("İşlem iptal edildi.");
-            }
-        }
-    </script>
+      } catch (err) {
+        log(`[Hata]: ${err.message}`);
+      }
+    }
+  </script>
 </body>
 </html>
