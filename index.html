@@ -4,31 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Base App ID & Builder Code Meta Tanımlamaları -->
+    <!-- Base.app ve Builder Code Meta Entegrasyon Etiketleri -->
     <meta name="base:app_id" content="6a399054e72cf2901e817d84" />
     <meta name="base:app_name" content="TheSky AI Agent" />
     <meta name="base:builder_code" content="bc_z7owye3n" />
     
-    <title>TheSky Agent - x402 Base Protocol</title>
+    <title>TheSky Agent - Base x402 Protocol</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 </head>
 <body class="bg-[#0b0e14] text-white min-h-screen p-6 font-sans">
     <div class="max-w-4xl mx-auto space-y-6">
-        <!-- Üst Bar -->
         <header class="flex justify-between items-center bg-[#151a25] p-5 rounded-2xl border border-blue-500/20 shadow-xl">
             <h1 class="text-xl font-black text-blue-400">THESKY <span class="text-white">AGENT</span></h1>
             <button id="connectBtn" onclick="connectWallet()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm transition shadow-lg">Cüzdan Bağla</button>
         </header>
 
-        <!-- Ana Panel -->
         <main class="bg-[#151a25] border border-slate-800 p-8 rounded-2xl space-y-8 shadow-2xl">
             <div class="space-y-2">
-                <h2 class="text-2xl font-extrabold">x402 AI Agent & L2 Airdrop Scanner</h2>
-                <p class="text-slate-400 text-sm">Base ağında x402 protokolü ve Builder Code altyapısıyla güvenli analiz, airdrop simülasyonu ve akıllı router swap işlemleri.</p>
+                <h2 class="text-2xl font-extrabold">x402 AI Agent & L2 Scanner (Chain ID: 8453)</h2>
+                <p class="text-slate-400 text-sm">Base ağında x402 protokolü ve Builder Code altyapısıyla canlı zincir analizi.</p>
             </div>
 
-            <!-- Cüzdan Analiz Bölümü -->
             <div class="flex gap-4">
                 <input id="promptInput" type="text" placeholder="Analiz edilecek cüzdan adresi girin (0x...)" class="flex-1 bg-[#0b0e14] border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition">
                 <button onclick="handleX402Request()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-lg whitespace-nowrap">
@@ -38,7 +35,6 @@
 
             <div id="statusBox" class="hidden p-4 rounded-xl text-sm font-mono border bg-blue-900/20 border-blue-500/40 text-blue-300"></div>
 
-            <!-- Analiz Sonuç Kartları -->
             <div id="resultContainer" class="hidden space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-[#0b0e14] p-5 rounded-xl border border-slate-800 text-center">
@@ -55,7 +51,6 @@
                     </div>
                 </div>
 
-                <!-- L2 Airdrop Simülasyon Kartları -->
                 <div class="bg-[#0b0e14] p-6 rounded-xl border border-slate-800 space-y-4">
                     <h3 class="font-bold text-sm text-slate-300">Geçmiş L2 Kriterlerine Göre Tahmini Airdrop Dağılımı</h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -78,23 +73,11 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Swap Aggregator Bölümü -->
-            <div class="border-t border-slate-800 pt-6 space-y-4">
-                <h3 class="text-lg font-bold text-blue-400">Dynamic AI Swap Aggregator (Uniswap V3)</h3>
-                <div class="flex gap-4">
-                    <input id="swapInput" type="text" value="0.001 ETH -> USDC" readonly class="flex-1 bg-[#0b0e14] border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-400">
-                    <button onclick="executeRealSwap()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-lg whitespace-nowrap">
-                        Uniswap Router ile Swap Yap
-                    </button>
-                </div>
-            </div>
         </main>
     </div>
 
     <script>
         const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-        const UNISWAP_V3_ROUTER = "0x26266480894562095f9c4f4cb3df0dd65f29f449";
         const BACKEND_URL = "https://thesky-agent.onrender.com";
         let provider, signer;
 
@@ -105,7 +88,7 @@
                 signer = await provider.getSigner();
                 document.getElementById('connectBtn').innerText = `${accounts[0].substring(0,6)}...${accounts[0].substring(38)}`;
             } else {
-                alert("Lütfen Web3 cüzdanı yükleyin.");
+                alert("Lütfen bir Web3 cüzdanı bağlayın.");
             }
         }
 
@@ -116,7 +99,7 @@
 
             const statusBox = document.getElementById('statusBox');
             statusBox.classList.remove('hidden');
-            statusBox.innerText = "1. x402 protokol ödeme şartları sorgulanıyor...";
+            statusBox.innerText = "1. x402 ödeme şartları kontrol ediliyor...";
 
             try {
                 const initialRes = await fetch(`${BACKEND_URL}/api/ai-agent/analyze`, {
@@ -127,7 +110,7 @@
 
                 if (initialRes.status === 402) {
                     const paymentDetails = await initialRes.json();
-                    statusBox.innerText = `2. x402 Ödeme onaylanıyor (${paymentDetails.priceUsdc} USDC - App Code: ${paymentDetails.extensions.builderCode})...`;
+                    statusBox.innerText = `2. x402 Ödemesi yapılıyor (${paymentDetails.priceUsdc} USDC) - App Code: ${paymentDetails.extensions.builderCode}...`;
 
                     const usdcContract = new ethers.Contract(
                         BASE_USDC, 
@@ -140,10 +123,10 @@
                         ethers.parseUnits(paymentDetails.priceUsdc, 6)
                     );
 
-                    statusBox.innerText = "3. İşlem blokzincirine işleniyor...";
+                    statusBox.innerText = "3. İşlem Base Mainnet (8453) üzerinde onaylanıyor...";
                     const receipt = await tx.wait();
 
-                    statusBox.innerText = "4. Ödeme onaylandı, veriler alınıyor...";
+                    statusBox.innerText = "4. Ödeme onaylandı, Basescan V2 verileri analiz ediliyor...";
 
                     const finalRes = await fetch(`${BACKEND_URL}/api/ai-agent/analyze`, {
                         method: 'POST',
@@ -158,6 +141,12 @@
 
                     if (finalData.success) {
                         statusBox.classList.add('hidden');
+
+                        if (!finalData.hasHistory) {
+                            alert(finalData.message);
+                            return;
+                        }
+
                         document.getElementById('resultContainer').classList.remove('hidden');
 
                         document.getElementById('resZkScore').innerText = finalData.analysis.zkScore;
@@ -172,45 +161,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                statusBox.innerText = "Hata: İşlem iptal edildi veya sunucuya erişilemedi.";
-            }
-        }
-
-        async function executeRealSwap() {
-            if (!signer) await connectWallet();
-            try {
-                const routerContract = new ethers.Contract(
-                    UNISWAP_V3_ROUTER,
-                    [
-                        "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96) params) external payable returns (uint256 amountOut)"
-                    ],
-                    signer
-                );
-
-                const userAddress = await signer.getAddress();
-                const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
-
-                const params = {
-                    tokenIn: "0x4200000000000000000000000000000000000006",
-                    tokenOut: BASE_USDC,
-                    fee: 3000,
-                    recipient: userAddress,
-                    deadline: deadline,
-                    amountIn: ethers.parseEther("0.001"),
-                    amountOutMinimum: 0,
-                    sqrtPriceLimitX96: 0
-                };
-
-                const tx = await routerContract.exactInputSingle(params, {
-                    value: ethers.parseEther("0.001")
-                });
-
-                alert("Uniswap Router Swap işlemi başlatıldı! Tx Hash: " + tx.hash);
-                await tx.wait();
-                alert("Swap başarıyla tamamlandı!");
-            } catch (error) {
-                console.error(error);
-                alert("Swap işleminde hata oluştu: " + (error.reason || error.message));
+                statusBox.innerText = "Hata oluştu veya işlem reddedildi.";
             }
         }
     </script>
