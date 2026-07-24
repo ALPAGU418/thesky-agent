@@ -3,21 +3,26 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors({ origin: '*' }));
+
+// NETLIFY SİTENİZDEN GELEN İSTEKLERE TAM İZİN VERME (CORS)
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-402-payment']
+}));
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
-
-// Base Chain Yapılandırmaları
-const CHAIN_ID = 8453; // Base Mainnet Chain ID
-const BUILDER_CODE = process.env.BUILDER_CODE || "bc_z7owye3n"; 
+const CHAIN_ID = 8453; // Base Mainnet
+const BUILDER_CODE = process.env.BUILDER_CODE || "bc_z7owye3n";
 const PAYMENT_RECIPIENT = process.env.PAYMENT_RECIPIENT || "0xCC09114041e7b7d389F2853375a5b2663C801898";
 const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "KI6TQSMW8IZ8HEBMFVB3ZAG5UQG8T74U1E";
 
 app.post('/api/ai-agent/analyze', async (req, res) => {
     const paymentHeader = req.headers['x-402-payment'] || req.headers['authorization'];
     
-    // 1. x402 Ödeme Kontrolü
+    // HTTP 402 Standardı
     if (!paymentHeader) {
         return res.status(402).json({
             error: "Payment Required",
@@ -26,9 +31,7 @@ app.post('/api/ai-agent/analyze', async (req, res) => {
             recipient: PAYMENT_RECIPIENT,
             chainId: CHAIN_ID,
             network: "base-mainnet",
-            extensions: {
-                builderCode: BUILDER_CODE
-            }
+            extensions: { builderCode: BUILDER_CODE }
         });
     }
 
@@ -38,76 +41,91 @@ app.post('/api/ai-agent/analyze', async (req, res) => {
         const walletAddress = walletMatch ? walletMatch[0] : null;
 
         if (!walletAddress) {
-            return res.status(400).json({ success: false, message: "Geçerli bir Base cüzdan adresi bulunamadı." });
+            return res.status(400).json({ success: false, message: "Geçerli bir Base cüzdan adresi giriniz." });
         }
 
-        // 2. Base Chain (ID: 8453) Üzerinde Basescan V2 API Sorgusu
-        const scanUrl = `https://api.basescan.org/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&sort=asc&apikey=${BASESCAN_API_KEY}`;
-        const response = await fetch(scanUrl);
-        const data = await response.json();
+        const balUrl = `https://api.basescan.org/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${BASESCAN_API_KEY}`;
+        const txUrl = `https://api.basescan.org/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=500&sort=desc&apikey=${BASESCAN_API_KEY}`;
+        const nftUrl = `https://api.basescan.org/api?module=account&action=tokennfttx&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=200&sort=desc&apikey=${BASESCAN_API_KEY}`;
 
-        if (data.status !== "1" || !data.result || data.result.length === 0) {
-            return res.json({
-                success: true,
-                hasHistory: false,
-                message: "Bu cüzdan adresi için Base ağında (Chain ID: 8453) henüz işlem kaydı bulunamadı.",
-                wallet: walletAddress
-            });
+        const [balRes, txRes, nftRes] = await Promise.all([
+            fetch(balUrl).then(r => r.json()).catch(() => null),
+            fetch(txUrl).then(r => r.json()).catch(() => null),
+            fetch(nftUrl).then(r => r.json()).catch(() => null)
+        ]);
+
+        let ethBalance = "0.0000";
+        if (balRes && balRes.status === "1") {
+            ethBalance = (Number(BigInt(balRes.result)) / 1e18).toFixed(4);
         }
 
-        const txs = data.result;
-        const totalTx = txs.length;
+        let txs = (txRes && txRes.status === "1") ? txRes.result : [];
+        let nfts = (nftRes && nftRes.status === "1") ? nftRes.result : [];
 
-        // Onchain Analiz Metrikleri
+        let totalTx = txs.length;
+        let uniqueContracts = new Set();
         let totalGasWei = BigInt(0);
-        const contracts = new Set();
-        const activeDays = new Set();
+        let activeDays = new Set();
+        let activeWeeks = new Set();
+        let activeMonths = new Set();
+        let bridgeTxCount = 0;
 
         txs.forEach(tx => {
-            const gasUsed = BigInt(tx.gasUsed || 0);
-            const gasPrice = BigInt(tx.gasPrice || 0);
-            totalGasWei += (gasUsed * gasPrice);
-
-            if (tx.to && tx.to.toLowerCase() !== walletAddress.toLowerCase()) {
-                contracts.add(tx.to.toLowerCase());
+            if (tx.gasUsed && tx.gasPrice) {
+                totalGasWei += BigInt(tx.gasUsed) * BigInt(tx.gasPrice);
             }
-
-            const dateStr = new Date(parseInt(tx.timeStamp) * 1000).toISOString().split('T')[0];
-            activeDays.add(dateStr);
+            if (tx.to) {
+                uniqueContracts.add(tx.to.toLowerCase());
+                if (["0x4200000000000000000000000000000000000010", "0x3154cf16ccdb4c6d92262966f000b0e660dcf0c0"].includes(tx.to.toLowerCase())) {
+                    bridgeTxCount++;
+                }
+            }
+            if (tx.timeStamp) {
+                const date = new Date(parseInt(tx.timeStamp) * 1000);
+                activeDays.add(date.toISOString().split('T')[0]);
+                activeWeeks.add(`${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`);
+                activeMonths.add(`${date.getFullYear()}-${date.getMonth() + 1}`);
+            }
         });
 
         const gasSpentEth = (Number(totalGasWei) / 1e18).toFixed(5);
-        const firstTxTimestamp = parseInt(txs[0].timeStamp) * 1000;
-        const walletAgeDays = Math.floor((Date.now() - firstTxTimestamp) / (1000 * 60 * 60 * 24));
-
-        const zkScore = Math.min(100, Math.floor((totalTx * 1.2) + (activeDays.size * 2) + (contracts.size * 1.5)));
+        const gasSpentUsd = (parseFloat(gasSpentEth) * 3500).toFixed(2);
+        const estimatedVolumeUsd = Math.floor(totalTx * 120 + bridgeTxCount * 500);
 
         return res.json({
             success: true,
-            hasHistory: true,
             chainId: CHAIN_ID,
             builderCode: BUILDER_CODE,
-            analysis: {
+            agentSummary: `AI Agent Analizi: Cüzdan Base ağında ${activeDays.size} farklı günde işlem yapmış, toplam ${uniqueContracts.size} benzersiz akıllı kontrat ile etkileşime geçmiştir. Harcanan toplam Gas fee ~$${gasSpentUsd} (${gasSpentEth} ETH) değerindedir.`,
+            stats: {
                 wallet: walletAddress,
-                zkScore: zkScore.toString(),
-                activityStreak: `${activeDays.size} Aktif Gün`,
-                totalTx: totalTx.toString(),
-                interactiveContracts: contracts.size.toString(),
-                gasSpent: `${gasSpentEth} ETH`,
-                walletAge: `${walletAgeDays} Gün`,
-                airdrops: {
-                    arbitrum: `${Math.floor(totalTx * 12 + activeDays.size * 15)} BASE`,
-                    linea: `${Math.floor(parseFloat(gasSpentEth) * 50000 + contracts.size * 20)} BASE`,
-                    starknet: `${Math.floor(walletAgeDays * 2 + activeDays.size * 10)} BASE`,
-                    zkSync: `${Math.floor(totalTx * 8 + walletAgeDays * 3)} BASE`
+                balanceEth: ethBalance,
+                activity: {
+                    days: activeDays.size,
+                    weeks: activeWeeks.size,
+                    months: activeMonths.size
+                },
+                interactions: {
+                    total: totalTx,
+                    uniqueContracts: uniqueContracts.size,
+                    bridges: bridgeTxCount
+                },
+                nft: {
+                    mintedUnique: new Set(nfts.map(n => n.contractAddress)).size,
+                    totalNftTx: nfts.length
+                },
+                financials: {
+                    gasSpentEth: gasSpentEth,
+                    gasSpentUsd: gasSpentUsd,
+                    estimatedVolumeUsd: estimatedVolumeUsd
                 }
             }
         });
 
     } catch (error) {
-        console.error("Basescan Analiz Hata:", error);
-        res.status(500).json({ success: false, message: "Basescan verisi işlenirken hata oluştu." });
+        console.error("Analiz Hatası:", error);
+        res.status(500).json({ success: false, message: "Cüzdan analizi sırasında hata oluştu." });
     }
 });
 
-app.listen(PORT, () => console.log(`x402 AI Agent ${PORT} portunda aktif (Base Chain ID: ${CHAIN_ID}).`));
+app.listen(PORT, () => console.log(`BaseSky AI Agent ${PORT} portunda dinlemede.`));
