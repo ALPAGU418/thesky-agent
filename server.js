@@ -4,7 +4,6 @@ require('dotenv').config();
 
 const app = express();
 
-// Netlify & Base.app CORS İzinleri
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
@@ -22,7 +21,7 @@ const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "KI6TQSMW8IZ8HEBMFVB3ZA
 app.post('/api/ai-agent/analyze', async (req, res) => {
     const paymentHeader = req.headers['x-402-payment'] || req.headers['authorization'];
 
-    // 1. x402 Protokolü HTTP 402 Yanıtı (Coinbase CDP Standartları)
+    // 1. x402 Ödeme Şartı Kontrolü (Coinbase CDP Standartlarında Builder Code ile)
     if (!paymentHeader) {
         return res.status(402).json({
             error: "Payment Required",
@@ -37,34 +36,34 @@ app.post('/api/ai-agent/analyze', async (req, res) => {
 
     try {
         const { prompt } = req.body;
-        // Metin içinden cüzdan adresini çek ve küçük harfe dönüştür
         const walletMatch = prompt ? prompt.match(/0x[a-fA-F0-9]{40}/) : null;
         if (!walletMatch) {
             return res.status(400).json({ success: false, message: "Geçerli bir Base cüzdan adresi giriniz." });
         }
         const walletAddress = walletMatch[0].toLowerCase();
 
-        // 2. Basescan API V2 Sorguları
+        // 2. Basescan API Çağrıları
         const balUrl = `https://api.basescan.org/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${BASESCAN_API_KEY}`;
         const txUrl = `https://api.basescan.org/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=1000&sort=desc&apikey=${BASESCAN_API_KEY}`;
         const nftUrl = `https://api.basescan.org/api?module=account&action=tokennfttx&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=500&sort=desc&apikey=${BASESCAN_API_KEY}`;
 
         const [balRes, txRes, nftRes] = await Promise.all([
-            fetch(balUrl).then(r => r.json()).catch(() => ({ status: "0" })),
-            fetch(txUrl).then(r => r.json()).catch(() => ({ status: "0" })),
-            fetch(nftUrl).then(r => r.json()).catch(() => ({ status: "0" }))
+            fetch(balUrl).then(r => r.json()).catch(() => null),
+            fetch(txUrl).then(r => r.json()).catch(() => null),
+            fetch(nftUrl).then(r => r.json()).catch(() => null)
         ]);
 
-        // ETH Bakiye Dönüşümü
+        // ETH Bakiye Hesaplama
         let ethBalance = "0.0000";
-        if (balRes && balRes.result && balRes.status === "1") {
+        if (balRes && balRes.status === "1" && balRes.result) {
             try {
                 ethBalance = (Number(BigInt(balRes.result)) / 1e18).toFixed(4);
             } catch (e) {}
         }
 
-        let txs = (txRes && txRes.result && Array.isArray(txRes.result)) ? txRes.result : [];
-        let nfts = (nftRes && nftRes.result && Array.isArray(nftRes.result)) ? nftRes.result : [];
+        // TX Listesi Kontrolü
+        let txs = (txRes && txRes.status === "1" && Array.isArray(txRes.result)) ? txRes.result : [];
+        let nfts = (nftRes && nftRes.status === "1" && Array.isArray(nftRes.result)) ? nftRes.result : [];
 
         let totalTx = txs.length;
         let uniqueContracts = new Set();
@@ -74,27 +73,27 @@ app.post('/api/ai-agent/analyze', async (req, res) => {
         let activeMonths = new Set();
         let bridgeTxCount = 0;
 
-        // 3. On-Chain Veri Analizi
         txs.forEach(tx => {
-            // Gas Fee Toplamı
+            // Gas Fee Toplama
             if (tx.gasUsed && tx.gasPrice) {
                 try {
                     totalGasWei += BigInt(tx.gasUsed) * BigInt(tx.gasPrice);
                 } catch (e) {}
             }
 
-            // Kontrat ve Bridge Etkileşimi
+            // Benzersiz Kontrat Hesabı
             if (tx.to && tx.to !== "") {
                 const toAddr = tx.to.toLowerCase();
                 if (toAddr !== walletAddress) {
                     uniqueContracts.add(toAddr);
                 }
+                // Base Bridge Kontrat Eşleşmeleri
                 if (["0x4200000000000000000000000000000000000010", "0x3154cf16ccdb4c6d92262966f000b0e660dcf0c0"].includes(toAddr)) {
                     bridgeTxCount++;
                 }
             }
 
-            // Streak Tarih Hesaplama
+            // İşlem Tarihi / Active Streak Hesabı
             if (tx.timeStamp) {
                 const date = new Date(parseInt(tx.timeStamp) * 1000);
                 if (!isNaN(date.getTime())) {
@@ -107,9 +106,10 @@ app.post('/api/ai-agent/analyze', async (req, res) => {
 
         const gasSpentEth = (Number(totalGasWei) / 1e18).toFixed(5);
         const gasSpentUsd = (parseFloat(gasSpentEth) * 3500).toFixed(2);
-        const estimatedVolumeUsd = Math.floor(totalTx * 180 + bridgeTxCount * 650);
+        
+        // Cüzdan aktivitesine göre tahmini hacim (Basescan kısıtı sebebiyle hesaplanan değer)
+        const estimatedVolumeUsd = totalTx > 0 ? Math.floor(totalTx * 125 + bridgeTxCount * 500) : 0;
 
-        // 4. İnceleme Sonucu Dashboard Yanıtı
         return res.json({
             success: true,
             chainId: CHAIN_ID,
@@ -142,8 +142,8 @@ app.post('/api/ai-agent/analyze', async (req, res) => {
 
     } catch (error) {
         console.error("Analiz Hatası:", error);
-        res.status(500).json({ success: false, message: "Sunucu içi veri işleme hatası." });
+        res.status(500).json({ success: false, message: "Veri işleme sırasında bir hata oluştu." });
     }
 });
 
-app.listen(PORT, () => console.log(`x402 Server ${PORT} portunda aktif.`));
+app.listen(PORT, () => console.log(`Server ${PORT} portunda çalışıyor.`));
