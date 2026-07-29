@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Base.app MiniApp Meta Etiketleri -->
+    <!-- Base.app ve Builder Code Meta Entegrasyonları -->
     <meta name="base:app_id" content="6a399054e72cf2901e817d84" />
     <meta name="base:app_name" content="zkCodex Base Agent" />
     <meta name="base:builder_code" content="bc_z7owye3n" />
@@ -41,7 +41,7 @@
 
         <!-- AI AGENT REPORT -->
         <div id="aiSummaryBox" class="hidden bg-gradient-to-r from-blue-950/40 to-indigo-950/40 border border-blue-500/30 p-5 rounded-2xl">
-            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">🤖 AI Agent On-Chain Yorumu</h3>
+            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">🤖 AI AGENT ON-CHAIN YORUMU</h3>
             <p id="aiSummaryText" class="text-sm text-slate-300 leading-relaxed"></p>
         </div>
 
@@ -133,7 +133,7 @@
                 signer = await provider.getSigner();
                 document.getElementById('connectBtn').innerText = `${accounts[0].substring(0,6)}...${accounts[0].substring(38)}`;
             } else {
-                alert("Lütfen Web3 cüzdanı (MetaMask veya Coinbase Wallet) kurun.");
+                alert("Lütfen Web3 cüzdanı kurun.");
             }
         }
 
@@ -147,6 +147,7 @@
             statusBox.innerText = "1. x402 Ödeme Şartı Sorgulanıyor...";
 
             try {
+                // Backend'den 402 şeması iste
                 const initRes = await fetch(`${BACKEND_URL}/api/ai-agent/analyze`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -160,11 +161,12 @@
                     const usdcContract = new ethers.Contract(BASE_USDC, ["function transfer(address to, uint256 amount) returns (bool)"], signer);
                     const tx = await usdcContract.transfer(payInfo.recipient, ethers.parseUnits("0.1", 6));
                     
-                    statusBox.innerText = "3. İşlem Onaylanıyor...";
+                    statusBox.innerText = "3. Onay bekleniyor...";
                     const receipt = await tx.wait();
 
-                    statusBox.innerText = "4. Ödeme Onaylandı! On-Chain veriler Basescan üzerinden çekiliyor...";
+                    statusBox.innerText = "4. Ödeme Onaylandı! On-Chain veriler analiz ediliyor...";
 
+                    // Ödeme hash'i ile backend'e tekrar istek at
                     const finalRes = await fetch(`${BACKEND_URL}/api/ai-agent/analyze`, {
                         method: 'POST',
                         headers: { 
@@ -180,7 +182,7 @@
                         document.getElementById('aiSummaryBox').classList.remove('hidden');
                         document.getElementById('aiSummaryText').innerText = data.agentSummary;
 
-                        // Ekran Metriklerini Güncelle
+                        // UI Güncelleme (Sayaçları güncelleme garantili)
                         document.getElementById('statDays').innerText = data.stats.activity.days;
                         document.getElementById('statWeeks').innerText = data.stats.activity.weeks;
                         document.getElementById('statMonths').innerText = data.stats.activity.months;
@@ -203,7 +205,7 @@
             const symbol = document.getElementById('tokenSymbol').value;
             const supply = document.getElementById('totalSupply').value;
 
-            if(!name || !symbol || !supply) return alert("B20 parametrelerini eksiksiz girin.");
+            if(!name || !symbol || !supply) return alert("Lütfen alanları doldurun.");
             if(!signer) await connectWallet();
 
             const deployStatus = document.getElementById('deployStatus');
